@@ -1,38 +1,51 @@
 '''
-Brasília, 16/06/2019
-Atualizações! Incluído suporte a UDP no envio de mensagens. Outros pontos interessantes
-também, mais detalhes no arquivo server.py. Aqui ainda falta ajustar o tratamento de
-entrada do usuário do número de sala.
+Brasília, 18/06/2019
+Ajuste para uso de TCP apenas. Incluí feedback para o usuário que envia mensagem
+recebê-la de volta também. Por enquanto, está parecendo mais um eco do que qualquer
+outra coisa. O user escreve uma coisa e recebe o que escreveu logo abaixo. A ideia é
+replicar o que aparece no server.py em cada instância de client.py que houver na sala.
+Também adicionei um tratamento de entrada para o escolha de salas.
 '''
 
 import socket
 import time
 
 # definindo host e porta
-host = '192.168.0.8'
+host = 'localhost'
 port_tcp = 60000
-port_udp = 61000
 addr_tcp = (host, port_tcp)
-addr_udp = (host, port_udp)
 
 # instanciando um objeto socket tcp e conectando com o host e porta definidos
 clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 clientsocket.connect(addr_tcp)
-
-# instanciando objeto socket udp
-udpclientsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 # criando um alias para nickname
 alias = input("Nickname: ")
 # enviando nickname para servidor
 clientsocket.sendto(alias.encode(), (addr_tcp))
 
+usuario = clientsocket.recv(1024)
+str_user = str(usuario, 'utf-8')
+
 # pegando número de sala
 sala = input("Digite a sala de chat que deseja entrar: ")
 
+# tratamento de entrada para número de sala: verificando valor ascii correspondente
+# a entrada dada
+while True:
+	if len(sala) > 1:
+		sala = input("Digite um valor válido (1-5): ")
+	elif(ord(sala) < 49 or ord(sala) > 54):
+		sala = input("Digite um valor válido (1-5): ")
+	else:
+		break
+
 # tratamento de entrada ainda por fazer
-#while not isinstance(sala, int) or (sala < 0 or sala > 5):
-#	sala = input("Informe um número de sala válido (inteiro 0-5): ")
+#while True:
+#    if (int(sala) < 0 or int(sala) > 5):
+#        break
+#    else:
+#		sala = input("Digite um valor válido: ")
 
 # enviando número de sala para servidor
 clientsocket.sendto(sala.encode(), (addr_tcp))
@@ -45,8 +58,11 @@ message = input(alias + "-> ")
 # a escrita - pela linha "message = input(alias + "-> ")"
 while message != 'q':
 	if message != '':
-		udpclientsocket.sendto(message.encode(), (addr_udp))
+		clientsocket.sendto(message.encode(), (addr_tcp))
 		print("Mensagem enviada.")
+	msg = clientsocket.recv(1024)
+	str_msg = str(msg, 'utf-8')
+	print(str_user + ": " + str_msg)
 	message = input(alias + "-> ")
 	time.sleep(0.2)
 clientsocket.close()
